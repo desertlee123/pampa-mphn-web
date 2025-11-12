@@ -1,66 +1,76 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+// src/app/page.js
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { logoutUser } from "../services/authService";
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.js file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+  const { session, setSession, loading } = useAuth();
+  const { theme } = useTheme();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !session) {
+      router.replace("/login"); // redirige si no hay sesión
+    }
+  }, [session, loading, router]);
+
+  if (loading) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background: theme.background,
+          color: theme.text.primary,
+        }}
+      >
+        <p>Cargando...</p>
       </main>
-    </div>
+    );
+  }
+
+  if (!session) return null; // mientras redirige, evita parpadeo
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setSession(null);
+    router.replace("/login");
+  };
+
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        padding: 20,
+        background: theme.background,
+        color: theme.text.primary,
+      }}
+    >
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 24, marginBottom: 8 }}>PAMPA MPHN - Web</h1>
+        <p>Sesión activa: {session.email}</p>
+        <p>Rol actual: {session.role}</p>
+
+        <button
+          onClick={handleLogout}
+          style={{
+            marginTop: 20,
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: 8,
+            background: theme.button.secondary,
+            color: theme.button.text,
+            cursor: "pointer",
+          }}
+        >
+          Cerrar sesión
+        </button>
+      </div>
+    </main>
   );
 }
