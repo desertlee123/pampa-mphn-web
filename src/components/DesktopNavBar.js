@@ -2,17 +2,20 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 import {
   MdHome,
   MdPhotoLibrary,
   MdMovie,
   MdSearch,
+  MdComment,
 } from "react-icons/md";
 
 export default function DesktopNavbar() {
   const { theme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
+  const { session } = useAuth();
 
   const links = [
     { label: "Inicio", icon: MdHome, path: "/" },
@@ -21,6 +24,11 @@ export default function DesktopNavbar() {
     { label: "Buscar", icon: MdSearch, path: "/buscar" },
   ];
 
+  // 👉 Solo agregamos "Comentarios" si el usuario es admin
+  if (session?.role === "admin") {
+    links.push({ label: "Comentarios", icon: MdComment, path: "/comentarios" });
+  }
+
   return (
     <nav
       className="desktop-navbar"
@@ -28,7 +36,7 @@ export default function DesktopNavbar() {
         width: "100%",
         backgroundColor: theme.cardBackground,
         borderBottom: `1px solid ${theme.border}`,
-        display: "none",
+        display: "flex",
         justifyContent: "space-around",
         gap: 30,
         padding: "12px 0",
