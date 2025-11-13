@@ -45,3 +45,46 @@ a {
     color-scheme: dark;
   }
 }
+
+/* --- Layout responsive global --- */
+
+/* Estilos para desktop */
+@media (min-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  main {
+    /* padding: 40px; */
+    /* max-width: 1200px; */
+    margin: 0 auto;
+  }
+  
+  /* Oculta la TabBar en pantallas grandes */
+  .mobile-tabbar {
+    display: none !important;
+  }
+
+  /* Navegación superior */
+  .desktop-navbar {
+    display: flex !important;
+  }
+}
+
+/* Estilos para mobile */
+@media (max-width: 767px) {
+  .desktop-navbar {
+    display: none !important;
+  }
+}
+
+button:hover {
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4f46e5 !important;
+  transition: border-color 0.2s ease;
+}

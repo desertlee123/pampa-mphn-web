@@ -4,11 +4,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import Header from "./Header";
 import TabBar from "./TapBar"
+import DesktopNavbar from "./DesktopNavBar";
 
 export default function MainLayout({ children }) {
   const { theme } = useTheme();
   const pathname = usePathname();
-  const router = useRouter();
 
   // Evitar mostrar el layout en login o signin
   if (pathname.startsWith("/login") || pathname.startsWith("/signin")) {
@@ -28,13 +28,26 @@ export default function MainLayout({ children }) {
       {/* Encabezado */}
       <Header />
 
+      {/* Navegación de escritorio */}
+      <DesktopNavbar />
+
       {/* Contenido dinámico */}
-      <div style={{ flex: 1, overflowY: "auto", paddingBottom: 60 }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          paddingBottom: 60,
+          width: "100%",
+          margin: "0 auto",
+        }}
+      >
         {children}
       </div>
 
-      {/* Tab bar inferior */}
-      <TabBar />
+      {/* Tab bar móvil */}
+      <div className="mobile-tabbar">
+        <TabBar />
+      </div>
     </div>
   );
 }

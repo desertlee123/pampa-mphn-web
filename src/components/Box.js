@@ -1,3 +1,4 @@
+// src/components/Box.js
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { IoStar } from "react-icons/io5";
@@ -16,6 +17,7 @@ export default function Box({ title, imageUrl, paraSocios, esSocio, onClick }) {
         boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
         position: "relative",
         flexShrink: 0,
+        cursor: "pointer",
       }}
     >
       {imageUrl ? (

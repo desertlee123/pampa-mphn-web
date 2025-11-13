@@ -55,21 +55,6 @@ export default function Home() {
         <h1 style={{ fontSize: 24, marginBottom: 8 }}>PAMPA MPHN - Web</h1>
         <p>Sesión activa: {session.email}</p>
         <p>Rol actual: {session.role}</p>
-
-        <button
-          onClick={handleLogout}
-          style={{
-            marginTop: 20,
-            padding: "10px 20px",
-            border: "none",
-            borderRadius: 8,
-            background: theme.button.secondary,
-            color: theme.button.text,
-            cursor: "pointer",
-          }}
-        >
-          Cerrar sesión
-        </button>
       </div>
     </main>
   );

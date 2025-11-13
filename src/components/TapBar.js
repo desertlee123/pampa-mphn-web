@@ -7,7 +7,6 @@ import {
   MdPhotoLibrary,
   MdMovie,
   MdSearch,
-  MdQrCodeScanner,
 } from "react-icons/md";
 
 export default function TabBar() {
@@ -20,7 +19,6 @@ export default function TabBar() {
     { label: "Mi galería", icon: MdPhotoLibrary, path: "/migaleria" },
     { label: "Shorts", icon: MdMovie, path: "/shorts" },
     { label: "Buscar", icon: MdSearch, path: "/buscar" },
-    { label: "QR", icon: MdQrCodeScanner, path: "/escanearqr" },
   ];
 
   return (

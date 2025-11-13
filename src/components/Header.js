@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 "use client";
 import { MdPersonOutline, MdWbSunny, MdDarkMode } from "react-icons/md";
 import { useTheme } from "../context/ThemeContext";
@@ -11,27 +10,38 @@ export default function Header() {
   return (
     <header
       style={{
-        height: 60,
+        height: 70,
         backgroundColor: theme.cardBackground,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 16px",
+        padding: "0 24px",
         borderBottom: `1px solid ${theme.border}`,
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        transition: "all 0.3s ease",
       }}
     >
       <h1
         style={{
-          fontSize: 20,
-          fontWeight: "bold",
+          fontSize: "clamp(20px, 2vw, 28px)",
+          fontWeight: "700",
           color: theme.text.primary,
           fontFamily: theme.fonts.bold,
+          letterSpacing: "-0.5px",
         }}
       >
         PAMPA MPHN
       </h1>
 
-      <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 24,
+          alignItems: "center",
+        }}
+      >
         <button
           onClick={toggleTheme}
           style={{
@@ -39,9 +49,15 @@ export default function Header() {
             border: "none",
             cursor: "pointer",
             color: theme.text.primary,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "transform 0.2s",
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.15)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
-          {isDark ? <MdWbSunny size={24} /> : <MdDarkMode size={24} />}
+          {isDark ? <MdWbSunny size={30} /> : <MdDarkMode size={30} />}
         </button>
 
         <button
@@ -51,9 +67,15 @@ export default function Header() {
             border: "none",
             cursor: "pointer",
             color: theme.text.primary,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "transform 0.2s",
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.15)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
-          <MdPersonOutline size={24} />
+          <MdPersonOutline size={30} />
         </button>
       </div>
     </header>

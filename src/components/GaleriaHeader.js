@@ -1,11 +1,8 @@
+// src/components/GaleriaHeader.js
 "use client";
 import { IoArrowBack } from "react-icons/io5";
 import { useTheme } from "../context/ThemeContext";
 
-/**
- * Componente cabecera de la galería
- * @param {{ galeria: object, onBack: Function }} props
- */
 export default function GaleriaHeader({ galeria, onBack }) {
   const { theme } = useTheme();
   const autor = galeria?.autor ?? "Autor desconocido";
@@ -26,6 +23,11 @@ export default function GaleriaHeader({ galeria, onBack }) {
           alignItems: "center",
           padding: "12px 16px",
           borderBottom: `1px solid ${theme.border}`,
+
+          // Estilos para desktop
+          "@media (minWidth: 768px)": {
+            margin: 0,
+          },
         }}
       >
         <button
@@ -44,7 +46,13 @@ export default function GaleriaHeader({ galeria, onBack }) {
       </div>
 
       {/* Info */}
-      <div style={{ padding: "16px" }}>
+      <div style={{
+        padding: "16px",
+        // Estilos para desktop
+        "@media (minWidth: 768px)": {
+          margin: 0,
+        },
+      }}>
         <p style={{ fontSize: 16, color: theme.text.primary }}>{autor}</p>
         <h2
           style={{

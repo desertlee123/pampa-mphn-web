@@ -7,6 +7,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { API_BASE_URL } from "../../../services/api";
 import Box from "../../../components/Box";
 import GaleriaHeader from "../../../components/GaleriaHeader";
+import { px } from "framer-motion";
 
 export default function GaleriaAutorPage() {
   const { id } = useParams();
@@ -94,6 +95,11 @@ export default function GaleriaAutorPage() {
         backgroundColor: theme.background,
         color: theme.text.primary,
         paddingBottom: 80, // espacio para TabBar
+
+        // Estilos para desktop
+        "@media (minWidth: 768px)": {
+          padding: 0,
+        },
       }}
     >
       <GaleriaHeader galeria={galeria} onBack={() => router.back()} />
@@ -104,6 +110,11 @@ export default function GaleriaAutorPage() {
           gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
           gap: 12,
           padding: 16,
+
+          // Estilos para desktop
+          "@media (minWidth: 768px)": {
+            maxWidth: 100,
+          },
         }}
       >
         {articulos.map((a) => (
