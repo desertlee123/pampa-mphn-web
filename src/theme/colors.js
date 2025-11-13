@@ -44,6 +44,11 @@ export const lightTheme = {
     medium: "'Inter', sans-serif",
     bold: "'Inter', sans-serif",
   },
+
+  comentario: {
+    seleccionado: "#ffead9ff",
+    noSeleccionado: "#fdf2e968",
+  }
 };
 
 export const darkTheme = {
@@ -96,4 +101,9 @@ export const darkTheme = {
     medium: "'Inter', sans-serif",
     bold: "'Inter', sans-serif",
   },
+
+  comentario: {
+    seleccionado: "#4e4e4eff",
+    noSeleccionado: "#4e4e4e5b",
+  }
 };

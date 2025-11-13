@@ -1,3 +1,4 @@
+// app/comentarios/page.js
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -11,53 +12,54 @@ export default function ComentariosAdmin() {
   const { theme } = useTheme();
   const router = useRouter();
 
-  const [comentarios, setComentarios] = useState([]); // lista izquierda -> SOLO revision
-  const [selectedComment, setSelectedComment] = useState(null); // panel detalle (derecha abajo)
+  const [comentarios, setComentarios] = useState([]);
+  const [selectedComment, setSelectedComment] = useState(null);
   const [filters, setFilters] = useState({});
   const [loading, setLoading] = useState(false);
   const [editingMsg, setEditingMsg] = useState("");
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [searchNotFound, setSearchNotFound] = useState(false);
 
-  // --- 1) traer solo comentarios en estado "revision" (lista izquierda)
   const fetchComentariosRevision = useCallback(async () => {
     if (!session?.token) return;
     setLoading(true);
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/comentarios/buscar?estado=revision`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.token}`,
-          },
-        }
-      );
+      const res = await fetch(`${API_BASE_URL}/comentarios/buscar?estado=revision`, {
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
       const data = await res.json();
-      if (res.ok && data.comentarios) {
-        setComentarios(data.comentarios);
-      } else {
-        setComentarios([]);
-      }
+      if (res.ok && data.comentarios) setComentarios(data.comentarios);
+      else setComentarios([]);
     } catch (e) {
       console.error("fetchComentariosRevision error:", e);
-      setComentarios([]);
     } finally {
       setLoading(false);
     }
   }, [session]);
 
-  // si no es admin, redirige
   useEffect(() => {
-    if (!session) return;
-    if (session.role !== "admin") router.replace("/");
+    if (session?.role !== "admin") router.replace("/");
   }, [session, router]);
 
-  // carga inicial: comentarios en revision
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const checkMobile = () => {
+      const isMobile = window.innerWidth < 768;
+      if (isMobile && session?.role === "admin") {
+        router.replace("/");
+      }
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, [session, router]);
+
   useEffect(() => {
     fetchComentariosRevision();
   }, [fetchComentariosRevision]);
 
-  // --- 2) manejar búsqueda (panel de control)
   const handleBuscar = async () => {
     if (!session?.token) return;
     setLoading(true);
@@ -66,71 +68,42 @@ export default function ComentariosAdmin() {
     setSelectedComment(null);
 
     const query = new URLSearchParams();
-    Object.entries(filters).forEach(([key, val]) => {
-      if (val) query.append(key, val);
-    });
+    Object.entries(filters).forEach(([k, v]) => v && query.append(k, v));
 
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/comentarios/buscar?${query.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.token}`,
-          },
-        }
-      );
-
-      // Si 404 -> no results
+      const res = await fetch(`${API_BASE_URL}/comentarios/buscar?${query}`, {
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
       if (res.status === 404) {
         setSearchNotFound(true);
-        setSelectedComment(null);
         return;
       }
-
       const data = await res.json();
-      if (res.ok && data.comentarios && data.comentarios.length > 0) {
-        // desplegar el primer resultado en el panel detalle (derecha abajo)
-        const primer = data.comentarios[0];
-        setSelectedComment(primer);
-        setEditingMsg(primer.mensaje || "");
-        setSearchNotFound(false);
-      } else {
-        setSearchNotFound(true);
-        setSelectedComment(null);
-      }
+      if (res.ok && data.comentarios?.length) {
+        const c = data.comentarios[0];
+        setSelectedComment(c);
+        setEditingMsg(c.mensaje || "");
+      } else setSearchNotFound(true);
     } catch (e) {
       console.error("handleBuscar error:", e);
       setSearchNotFound(true);
-      setSelectedComment(null);
     } finally {
       setLoading(false);
     }
   };
 
-  // --- 3) acciones: publicar, rechazar, editar, eliminar
   const handleAccion = async (accion, estadoParam = null) => {
-    if (!session?.token) return;
-    // cuando eliminar:
-    if (accion === "delete" && !selectedComment) return;
-
+    if (!selectedComment) return;
     const body = {
       operation: accion === "delete" ? "delete" : "update",
-      id_comentario: selectedComment?.id,
+      id_comentario: selectedComment.id,
     };
-
-    // si es update, decidimos estado final considerando edición por admin
     if (accion === "update") {
-      // si quieren publicar y el admin modificó el mensaje -> marcar "editado"
-      let desiredEstado = estadoParam ?? null;
-      if (estadoParam === "publicado" && editingMsg !== selectedComment.mensaje) {
+      let desiredEstado = estadoParam;
+      if (estadoParam === "publicado" && editingMsg !== selectedComment.mensaje)
         desiredEstado = "editado";
-      }
       if (desiredEstado) body.estado = desiredEstado;
-
-      // si modificó mensaje, lo enviamos
-      if (editingMsg !== selectedComment.mensaje) {
-        body.mensaje = editingMsg;
-      }
+      if (editingMsg !== selectedComment.mensaje) body.mensaje = editingMsg;
     }
 
     try {
@@ -142,23 +115,15 @@ export default function ComentariosAdmin() {
         },
         body: JSON.stringify(body),
       });
-
-      if (!res.ok) {
-        // opcional: parsear errores y mostrar alert/console
-        const err = await res.json().catch(() => null);
-        console.error("API error:", err);
-      } else {
-        // acción OK:
-        //  - refrescar la lista de revisión (para mantener la lista izquierda consistente)
-        //  - limpiar panel detalle
+      if (res.ok) {
         setSelectedComment(null);
         setEditingMsg("");
         setSearchPerformed(false);
         setSearchNotFound(false);
-        await fetchComentariosRevision();
+        fetchComentariosRevision();
       }
     } catch (e) {
-      console.error("handleAccion fetch error:", e);
+      console.error(e);
     }
   };
 
@@ -170,7 +135,7 @@ export default function ComentariosAdmin() {
           ? "#10b981"
           : estado === "rechazado"
             ? "#ef4444"
-            : "#3b82f6"; // editado -> azul
+            : "#3b82f6";
     return (
       <span
         style={{
@@ -191,23 +156,26 @@ export default function ComentariosAdmin() {
     <main
       style={{
         display: "flex",
-        height: "calc(100vh - 70px)",
+        padding: 20,
+        gap: 20,
         background: theme.background,
         color: theme.text.primary,
+        justifyContent: "space-between",
         overflow: "hidden",
       }}
     >
-      {/* PANEL IZQUIERDO: SOLO comentarios en 'revision' */}
+      {/* IZQUIERDA: solo revisión */}
       <div
         style={{
           width: "30%",
-          borderRight: `1px solid ${theme.border}`,
+          border: `1px solid ${theme.border}`,
           overflowY: "auto",
+          borderRadius: 8,
           padding: 16,
+          backgroundColor: theme.cardBackground,
         }}
       >
         <h2 style={{ fontSize: 20, marginBottom: 10 }}>En revisión</h2>
-
         {loading && !searchPerformed ? (
           <p>Cargando...</p>
         ) : comentarios.length === 0 ? (
@@ -219,135 +187,306 @@ export default function ComentariosAdmin() {
               onClick={() => {
                 setSelectedComment(c);
                 setEditingMsg(c.mensaje);
-                setSearchPerformed(false);
-                setSearchNotFound(false);
               }}
               style={{
                 background:
-                  selectedComment?.id === c.id ? theme.cardBackground : "transparent",
+                  selectedComment?.id === c.id
+                    ? theme.comentario.seleccionado
+                    : theme.comentario.noSeleccionado,
                 padding: 12,
                 marginBottom: 10,
                 borderRadius: 8,
                 cursor: "pointer",
-                transition: "0.2s",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <strong>{c.usuario?.name || "Usuario"}</strong>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    className="material-icons-outlined"
+                    style={{ fontSize: 18, color: theme.text.secondary }}
+                  >
+                    person
+                  </span>
+                  <strong>{c.usuario?.name || "Usuario"}</strong>
+                </div>
                 {renderEstado(c.estado)}
               </div>
               <p style={{ fontSize: 14, opacity: 0.8, marginTop: 4 }}>
-                {c.mensaje.length > 60 ? c.mensaje.slice(0, 60) + "..." : c.mensaje}
+                {c.mensaje.slice(0, 60)}...
               </p>
             </div>
           ))
         )}
       </div>
 
-      {/* PANEL DERECHO: panel de control arriba + detalle abajo */}
       <div
         style={{
-          flex: 1,
+          flexGrow: 1,
           display: "flex",
           flexDirection: "column",
-          padding: 16,
-          gap: 12,
-          overflow: "hidden",
+          rowGap: 20,
         }}
       >
-        {/* PANEL DE CONTROL */}
-        <div
+        {/* DERECHA: control + detalle */}
+        <section
           style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 10,
             border: `1px solid ${theme.border}`,
-            padding: 10,
             borderRadius: 8,
-            alignItems: "center",
+            backgroundColor: theme.cardBackground,
+            padding: 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 14,
           }}
         >
-          <input
-            placeholder="Nombre usuario"
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, nombre_usuario: e.target.value }))
-            }
-            style={{ padding: 6, borderRadius: 6, flex: "1", minWidth: 160 }}
-          />
-          <input
-            placeholder="ID artículo"
-            onChange={(e) => setFilters((prev) => ({ ...prev, id_articulo: e.target.value }))}
-            style={{ padding: 6, borderRadius: 6, minWidth: 120 }}
-          />
-          <input
-            type="date"
-            onChange={(e) => setFilters((prev) => ({ ...prev, fecha: e.target.value }))}
-            style={{ padding: 6, borderRadius: 6 }}
-          />
-          <select
-            onChange={(e) => setFilters((prev) => ({ ...prev, estado: e.target.value }))}
-            style={{ padding: 6, borderRadius: 6 }}
-            defaultValue=""
-          >
-            <option value="">Estado</option>
-            <option value="revision">Revisión</option>
-            <option value="publicado">Publicado</option>
-            <option value="rechazado">Rechazado</option>
-            <option value="editado">Editado</option>
-          </select>
-          <button
-            onClick={handleBuscar}
-            style={{
-              background: theme.accent || theme.primary,
-              color: "#fff",
-              padding: "6px 16px",
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Buscar
-          </button>
-        </div>
+          <h3 style={{ fontSize: 18, fontWeight: "bold" }}>Buscar comentario</h3>
 
-        {/* PANEL DE DETALLE / RESULTADO DE BUSQUEDA (ABAJO) */}
+          <style jsx global>{`
+            input:focus,
+            select:focus,
+            textarea:focus {
+              outline: none;
+              border-color: ${theme.primary} !important;
+              transition: border-color 0.2s ease;
+            }
+
+            input[type="checkbox"]:checked {
+              accent-color: ${theme.primary};
+            }
+
+            input[type="date"]::-webkit-calendar-picker-indicator {
+              filter: ${theme.name === "dark"
+              ? "invert(1) brightness(1.2)"
+              : "invert(0)"
+            };
+            }
+          `}</style>
+
+          {/* Usuario */}
+          <div>
+            <label style={{ fontWeight: "500", display: "block", marginBottom: 6 }}>
+              Usuario
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+              <input
+                placeholder="nombre"
+                onChange={(e) =>
+                  setFilters((f) => ({ ...f, nombre_usuario: e.target.value }))
+                }
+                style={{
+                  padding: 6,
+                  borderRadius: 6,
+                  backgroundColor: theme.input.background,
+                  border: "1px solid gray",
+                  color: theme.text.primary,
+                }}
+              />
+              <input
+                placeholder="mail"
+                type="email"
+                onChange={(e) =>
+                  setFilters((f) => ({ ...f, mail_usuario: e.target.value }))
+                }
+                style={{
+                  padding: 6,
+                  borderRadius: 6,
+                  backgroundColor: theme.input.background,
+                  border: "1px solid gray",
+                  color: theme.text.primary,
+                }}
+              />
+              <input
+                placeholder="id"
+                onChange={(e) =>
+                  setFilters((f) => ({ ...f, id_usuario: e.target.value }))
+                }
+                style={{
+                  padding: 6,
+                  borderRadius: 6,
+                  backgroundColor: theme.input.background,
+                  border: "1px solid gray",
+                  color: theme.text.primary,
+                }}
+              />
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  onChange={(e) =>
+                    setFilters((f) => ({ ...f, socio: e.target.checked ? "true" : "" }))
+                  }
+                />
+                <span>Socio</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Artículo */}
+          <div>
+            <label style={{ fontWeight: "500", display: "block", marginBottom: 6 }}>
+              Artículo
+            </label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+              <input
+                placeholder="nombre"
+                onChange={(e) =>
+                  setFilters((f) => ({ ...f, nombre_articulo: e.target.value }))
+                }
+                style={{
+                  padding: 6,
+                  borderRadius: 6,
+                  backgroundColor: theme.input.background,
+                  border: "1px solid gray",
+                  color: theme.text.primary,
+                }}
+              />
+              <input
+                placeholder="id"
+                onChange={(e) =>
+                  setFilters((f) => ({ ...f, id_articulo: e.target.value }))
+                }
+                style={{
+                  padding: 6,
+                  borderRadius: 6,
+                  backgroundColor: theme.input.background,
+                  border: "1px solid gray",
+                  color: theme.text.primary,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Estado */}
+          <div>
+            <label style={{ fontWeight: "500", display: "block", marginBottom: 6 }}>
+              Estado
+            </label>
+            <select
+              onChange={(e) => setFilters((f) => ({ ...f, estado: e.target.value }))}
+              defaultValue=""
+              style={{
+                padding: 6,
+                borderRadius: 6,
+                backgroundColor: theme.input.background,
+                border: "1px solid gray",
+                color: theme.text.primary,
+              }}
+            >
+              <option value="">Todos</option>
+              <option value="publicado">Publicado</option>
+              <option value="rechazado">Rechazado</option>
+              <option value="revision">Revisión</option>
+              <option value="editado">Editado</option>
+            </select>
+          </div>
+
+          {/* Contenido mensaje */}
+          <div>
+            <label style={{ fontWeight: "500", display: "block", marginBottom: 6 }}>
+              Contenido del mensaje
+            </label>
+            <input
+              placeholder="texto del comentario"
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, mensaje: e.target.value }))
+              }
+              style={{
+                padding: 6,
+                borderRadius: 6,
+                width: "100%",
+                backgroundColor: theme.input.background,
+                border: "1px solid gray",
+                color: theme.text.primary,
+              }}
+            />
+          </div>
+
+          {/* Fecha */}
+          <div>
+            <label style={{ fontWeight: "500", display: "block", marginBottom: 6 }}>
+              Fecha
+            </label>
+            <input
+              type="date"
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, fecha: e.target.value }))
+              }
+              style={{
+                padding: 6,
+                borderRadius: 6,
+                backgroundColor: theme.input.background,
+                border: "1px solid gray",
+                color: theme.text.primary,
+              }}
+            />
+          </div>
+
+          {/* Botón */}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+            <button
+              onClick={handleBuscar}
+              style={{
+                background: theme.primary,
+                color: "#fff",
+                padding: "8px 20px",
+                borderRadius: 8,
+                border: "none",
+                cursor: "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              Buscar
+            </button>
+          </div>
+        </section>
+
+        {/* PANEL DETALLE */}
         <div
           style={{
             flex: 1,
             border: `1px solid ${theme.border}`,
             borderRadius: 8,
+            backgroundColor: theme.cardBackground,
             padding: 16,
             overflowY: "auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
           }}
         >
-          {/* Si se realizó una búsqueda y NO hay resultados -> mostrar mensaje */}
           {searchPerformed && searchNotFound && (
-            <div style={{ textAlign: "center", marginTop: 20 }}>
-              <p style={{ fontSize: 16 }}>No se encontraron resultados.</p>
-            </div>
+            <p style={{ textAlign: "center", marginTop: 20 }}>
+              No se encontraron resultados.
+            </p>
           )}
-
-          {/* Si hay un comentario seleccionado (venga de la lista o de la búsqueda) -> mostrar detalle */}
-          {selectedComment ? (
+          {selectedComment && (
             <>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  gap: 12,
                 }}
               >
-                <div>
-                  <h3 style={{ marginBottom: 4 }}>{selectedComment.usuario?.name}</h3>
-                  <small>
-                    {selectedComment.created_at
-                      ? format(new Date(selectedComment.created_at), "dd/MM/yyyy HH:mm")
-                      : ""}
-                  </small>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    className="material-icons-outlined"
+                    style={{ fontSize: 22, color: theme.text.secondary }}
+                  >
+                    person
+                  </span>
+                  <div>
+                    <h3>{selectedComment.usuario?.name}</h3>
+                    <small>
+                      {format(
+                        new Date(selectedComment.created_at),
+                        "dd/MM/yyyy HH:mm"
+                      )}
+                    </small>
+                  </div>
                 </div>
                 {renderEstado(selectedComment.estado)}
               </div>
@@ -358,88 +497,92 @@ export default function ComentariosAdmin() {
                 style={{
                   marginTop: 12,
                   width: "100%",
-                  height: 160,
+                  height: 120,
                   padding: 8,
                   borderRadius: 6,
-                  background: theme.cardBackground,
+                  backgroundColor: theme.border,
                   color: theme.text.primary,
                   border: `1px solid ${theme.border}`,
-                  boxSizing: "border-box",
                 }}
               />
 
-              <div style={{ marginTop: 12, display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  justifyContent: "flex-end",
+                  marginTop: 10,
+                }}
+              >
                 <button
                   onClick={() => handleAccion("update", "publicado")}
                   style={{
                     background: "#10b981",
                     color: "#fff",
-                    padding: "8px 16px",
-                    border: "none",
+                    padding: "6px 14px",
                     borderRadius: 6,
                     cursor: "pointer",
+                    border: "none",
                   }}
                 >
                   Publicar
                 </button>
-
                 <button
                   onClick={() => handleAccion("update", "rechazado")}
                   style={{
                     background: "#ef4444",
                     color: "#fff",
-                    padding: "8px 16px",
-                    border: "none",
+                    padding: "6px 14px",
                     borderRadius: 6,
                     cursor: "pointer",
+                    border: "none",
                   }}
                 >
                   Rechazar
                 </button>
-
                 <button
-                  onClick={() => {
-                    handleAccion("delete");
-                  }}
+                  onClick={() => handleAccion("delete")}
                   style={{
                     background: "#9ca3af",
                     color: "#fff",
-                    padding: "8px 16px",
-                    border: "none",
+                    padding: "6px 14px",
                     borderRadius: 6,
                     cursor: "pointer",
+                    border: "none",
                   }}
                 >
                   Eliminar
                 </button>
-
                 <button
-                  onClick={() => {
-                    setSelectedComment(null);
-                    setEditingMsg("");
-                    setSearchPerformed(false);
-                    setSearchNotFound(false);
-                  }}
+                  onClick={() => setSelectedComment(null)}
                   style={{
                     background: "#6b7280",
                     color: "#fff",
-                    padding: "8px 16px",
-                    border: "none",
+                    padding: "6px 14px",
                     borderRadius: 6,
                     cursor: "pointer",
+                    border: "none",
                   }}
                 >
                   Cerrar
                 </button>
+                <button
+                  onClick={() =>
+                    router.push(`/articulo/${selectedComment.articulos_id}`)
+                  }
+                  style={{
+                    background: theme.primary || "#3b82f6",
+                    color: "#fff",
+                    padding: "6px 14px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    border: "none",
+                  }}
+                >
+                  Ir al mensaje
+                </button>
               </div>
             </>
-          ) : (
-            // Si no hay comentario seleccionado y no buscaste -> mostrar hint o vacio
-            !searchPerformed && (
-              <div style={{ textAlign: "center", marginTop: 20 }}>
-                <p style={{ fontSize: 16 }}>Seleccioná un comentario de la lista o buscá uno arriba.</p>
-              </div>
-            )
           )}
         </div>
       </div>
