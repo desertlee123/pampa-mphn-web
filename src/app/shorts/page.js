@@ -1,12 +1,35 @@
 // src/app/shorts/page.js
 "use client";
-import { useTheme } from "../../context/ThemeContext";
+import { useEffect, useState } from "react";
+import { API_BASE_URL } from "../../services/api";
+import ShortsComponent from "../../components/ShortsComponent";
+
 export default function ShortsPage() {
-  const { theme } = useTheme();
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/videos`);
+        const data = await res.json();
+
+        setItems(
+          data.map((v) => ({
+            id: v.id.toString(),
+            url: v.youtube_url,
+          }))
+        );
+      } catch (error) {
+        console.error("Error loading shorts:", error);
+      }
+    };
+
+    load();
+  }, []);
+
   return (
-    <div style={{ padding: 20, color: theme.text.primary }}>
-      <h2>🎬 Shorts</h2>
-      <p>Bienvenido a PAMPA MPHN (versión web mobile)</p>
+    <div className="shorts-container" style={{ height: "calc(100vh - 130px)", overflow: "hidden" }}>
+      <ShortsComponent items={items} />
     </div>
   );
 }

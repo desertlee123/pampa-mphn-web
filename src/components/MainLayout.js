@@ -1,6 +1,6 @@
 // src/components/MainLayout.jsx
 "use client";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useTheme } from "../context/ThemeContext";
 import Header from "./Header";
 import TabBar from "./TapBar"
@@ -39,6 +39,10 @@ export default function MainLayout({ children }) {
           paddingBottom: 60,
           width: "100%",
           margin: "0 auto",
+          ...(pathname === "/shorts" && {
+            paddingBottom: 0,
+            overflowY: "hidden",
+          }),
         }}
       >
         {children}
@@ -48,6 +52,6 @@ export default function MainLayout({ children }) {
       <div className="mobile-tabbar">
         <TabBar />
       </div>
-    </div>
+    </div >
   );
 }

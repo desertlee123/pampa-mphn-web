@@ -23,7 +23,6 @@ body {
   font-family: 'Inter', sans-serif;
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -55,19 +54,38 @@ a {
   }
 
   main {
-    /* padding: 40px; */
-    /* max-width: 1200px; */
     margin: 0 auto;
   }
-  
-  /* Oculta la TabBar en pantallas grandes */
+
   .mobile-tabbar {
     display: none !important;
   }
 
-  /* Navegación superior */
   .desktop-navbar {
     display: flex !important;
+  }
+
+  .short-item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: black;
+    height: calc(100vh - 130px) !important;
+  }
+
+  .short-item>div {
+    width: 100%;
+    max-width: 420px;
+    height: 100%;
+    max-height: 780px;
+    aspect-ratio: 9/16;
+  }
+
+  .short-item iframe {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 420px !important;
+    max-height: 780px !important;
   }
 }
 
@@ -75,6 +93,27 @@ a {
 @media (max-width: 767px) {
   .desktop-navbar {
     display: none !important;
+  }
+
+  .short-item {
+    width: 100% !important;
+    height: calc(100vh - 130px) !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 130px) !important;
+  }
+
+  .short-item iframe {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    aspect-ratio: 9/16 !important;
+  }
+
+  .shorts-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    height: calc(100vh - 130px) !important;
   }
 }
 
@@ -87,4 +126,21 @@ input:focus {
   outline: none;
   border-color: #4f46e5 !important;
   transition: border-color 0.2s ease;
+}
+
+/* Mejorar el scroll snapping y prevenir scroll horizontal */
+.short-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Prevenir scroll horizontal en toda la app */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* Asegurar que el main layout funcione correctamente con shorts */
+main {
+  overflow: hidden !important;
 }
