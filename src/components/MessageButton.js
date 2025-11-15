@@ -21,6 +21,7 @@ export default function MessageButton({ onClick, theme }) {
         justifyContent: "center",
         boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
         zIndex: 100,
+        marginBottom: "60px",
       }}
     >
       {messageIcon({ color: theme.background })}

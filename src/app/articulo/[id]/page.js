@@ -1,4 +1,3 @@
-// /src/app/articulo/[id]/page.js
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { useEffect, useState } from "react";
@@ -11,6 +10,9 @@ import Tabla from "../../../components/tabla/Tabla";
 import Fila from "../../../components/tabla/Fila";
 import MessageButton from "../../../components/MessageButton";
 import { shareIcon, saveIcon } from "../../../components/Icons";
+import { IoArrowBack } from "react-icons/io5";
+// Importado el ModalCard
+import ModalCard from "../../../components/ModalCard";
 
 export default function ArticuloPage() {
   const { id } = useParams();
@@ -31,6 +33,8 @@ export default function ArticuloPage() {
   });
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Nuevo estado para controlar el modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Cargar artículo y verificar si está guardado
   useEffect(() => {
@@ -63,14 +67,9 @@ export default function ArticuloPage() {
 
   // Función para guardar/desguardar artículo
   const handleSaveArticle = async () => {
-
-    if (session?.role === 'visitor') {
-      alert("Debes registrarte para guardar artículos");
-      return;
-    }
-
-    if (!session?.token || session.token === "VISITOR_MODE") {
-      alert("Debes iniciar sesión para guardar artículos");
+    if (session?.role === 'visitor' || !session?.token || session.token === "VISITOR_MODE") {
+      // Muestra el modal en lugar del alert
+      setIsModalOpen(true);
       return;
     }
 
@@ -89,6 +88,17 @@ export default function ArticuloPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Funciones para controlar el modal
+  const handleModalConfirm = () => {
+    setIsModalOpen(false);
+    // Navegar para registrarse o iniciar sesión
+    router.push('/login');
+  };
+
+  const handleModalCancel = () => {
+    setIsModalOpen(false);
   };
 
   // Función para compartir artículo (Web API)
@@ -116,6 +126,11 @@ export default function ArticuloPage() {
     router.push(`/vista-imagen?imageUrl=${encodeURIComponent(articulo.imageUrl)}`);
   };
 
+  // Función para retroceder
+  const handleBack = () => {
+    router.back();
+  };
+
   if (loading) {
     return (
       <main
@@ -130,11 +145,11 @@ export default function ArticuloPage() {
       >
         <div style={{ width: 40, height: 40, border: `4px solid #FFA500`, borderTop: "4px solid transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
         <style jsx>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </main>
     );
   }
@@ -228,44 +243,67 @@ export default function ArticuloPage() {
         <div
           style={{
             display: "flex",
-            justifyContent: "flex-end",
+            justifyContent: "space-between",
+            alignItems: "center",
             padding: "16px 16px 0 16px",
           }}
         >
-          {/* Botón compartir */}
+          {/* Botón de retroceso */}
           <button
-            onClick={handleShare}
+            onClick={handleBack}
             style={{
-              marginRight: 20,
               background: "none",
               border: "none",
               cursor: "pointer",
               padding: 8,
               borderRadius: 8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: theme.text.primary,
+              fontSize: 24,
             }}
           >
-            {shareIcon({ color: theme.text.primary })}
+            <IoArrowBack />
           </button>
 
-          {/* Botón guardar con estado visual */}
-          <button
-            onClick={handleSaveArticle}
-            disabled={saving}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: saving ? "not-allowed" : "pointer",
-              padding: 8,
-              borderRadius: 8,
-              opacity: saving ? 0.6 : 1,
-            }}
-          >
-            {saveIcon({
-              color: isSaved ? theme.primary : theme.text.primary,
-              fill: isSaved ? theme.primary : 'transparent', // Cambiado a 'transparent'
-              stroke: isSaved ? theme.primary : theme.text.primary
-            })}
-          </button>
+          {/* Botones de la derecha */}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            {/* Botón compartir */}
+            <button
+              onClick={handleShare}
+              style={{
+                marginRight: 20,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 8,
+                borderRadius: 8,
+              }}
+            >
+              {shareIcon({ color: theme.text.primary })}
+            </button>
+
+            {/* Botón guardar con estado visual */}
+            <button
+              onClick={handleSaveArticle}
+              disabled={saving}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: saving ? "not-allowed" : "pointer",
+                padding: 8,
+                borderRadius: 8,
+                opacity: saving ? 0.6 : 1,
+              }}
+            >
+              {saveIcon({
+                color: isSaved ? theme.primary : theme.text.primary,
+                fill: isSaved ? theme.primary : 'transparent',
+                stroke: isSaved ? theme.primary : theme.text.primary
+              })}
+            </button>
+          </div>
         </div>
 
         {/* Contenido scrollable */}
@@ -330,9 +368,27 @@ export default function ArticuloPage() {
         </div>
       </div>
 
-      {/* Botón de mensajes flotante */}
+      {/* Botón de mensajes flotante (Ajuste de estilo para que no se tape) */}
       <MessageButton
         onClick={() => router.push(`/comentarios/${articulo.id}`)}
+        theme={theme}
+        style={{
+          bottom: '20px',
+          right: '20px',
+          position: 'fixed',
+          zIndex: 1000,
+        }}
+      />
+
+      {/* Modal para usuarios no autenticados */}
+      <ModalCard
+        open={isModalOpen}
+        title="Guardar Artículo"
+        message="Para guardar artículos y usar todas las funciones, por favor, regístrate o inicia sesión."
+        onConfirm={handleModalConfirm}
+        onCancel={handleModalCancel}
+        confirmText="Registrarse / Iniciar Sesión"
+        cancelText="Cancelar"
         theme={theme}
       />
     </div>

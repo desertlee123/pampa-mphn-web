@@ -1,12 +1,14 @@
 // src/app/vista-imagen/page.js
 /* eslint-disable @next/next/no-img-element */
 "use client";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useTheme } from "../../context/ThemeContext";
 import { useState, useRef } from "react";
+import { IoArrowBack } from "react-icons/io5";
 
 export default function VistaImagenPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const imageUrl = searchParams.get("imageUrl");
   const { theme } = useTheme();
 
@@ -36,6 +38,10 @@ export default function VistaImagenPage() {
     }
   };
 
+  const handleBack = () => {
+    router.back();
+  };
+
   return (
     <main
       style={{
@@ -46,10 +52,35 @@ export default function VistaImagenPage() {
         alignItems: "center",
         overflow: "hidden",
         cursor: scale > 1 ? "grab" : "pointer",
+        position: "relative",
       }}
       onWheel={handleWheel}
       onDoubleClick={handleDoubleClick}
     >
+      {/* Botón de retroceso */}
+      <button
+        onClick={handleBack}
+        style={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          background: "rgba(0, 0, 0, 0.5)",
+          border: "none",
+          borderRadius: "50%",
+          width: 44,
+          height: 44,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          zIndex: 10,
+          color: "white",
+          fontSize: 24,
+        }}
+      >
+        <IoArrowBack />
+      </button>
+
       <img
         src={imageUrl}
         alt="Vista ampliada"
