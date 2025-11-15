@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "../../services/api";
+import { API_BASE_URL, IMAGE_BASE_URL } from "../../services/api";
 import { IoSearch, IoCalendarOutline, IoClose } from "react-icons/io5";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -26,12 +26,12 @@ export default function BuscarPage() {
   const router = useRouter();
 
   // Normaliza rutas relativas a URL completa
-  const normalizeImage = (path) => {
+  /* const normalizeImage = (path) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
     const clean = path.startsWith("/") ? path.slice(1) : path;
     return `${API_BASE_URL.replace("/api", "")}/${clean}`;
-  };
+  }; */
 
   const isoFromDate = (dateObj) => {
     if (!dateObj) return null;
@@ -89,17 +89,11 @@ export default function BuscarPage() {
       const articleMap = new Map();
       articleArrays.flat().forEach((a) => {
         if (!articleMap.has(a.id)) {
-          articleMap.set(a.id, { ...a, imagen: normalizeImage(a.imagen) });
+          const img = a.imagen ? `${IMAGE_BASE_URL}/${a.imagen}` : null;
+          articleMap.set(a.id, { ...a, imagen: img });
         }
       });
       let normalizedArticulos = Array.from(articleMap.values());
-
-      const esSocio = session?.role === "partner";
-      if (!esSocio) {
-        normalizedArticulos = normalizedArticulos.filter(
-          (a) => a.para_socios === 0
-        );
-      }
 
       // --- Galerías ---
       const galleryQueries = [
@@ -122,8 +116,9 @@ export default function BuscarPage() {
             const res = await fetch(`${API_BASE_URL}/galerias/${g.id}`);
             if (!res.ok) return { ...g, imagen: null };
             const data = await res.json();
-            const img = data?.articulos?.[0]?.imagen ?? null;
-            return { ...g, imagen: normalizeImage(img) };
+            const rawImgPath = data?.articulos?.[0]?.imagen ?? null;
+            const img = rawImgPath ? `${IMAGE_BASE_URL}/${rawImgPath}` : null;
+            return { ...g, imagen: img };
           } catch {
             return { ...g, imagen: null };
           }
@@ -147,6 +142,14 @@ export default function BuscarPage() {
 
   const clearDate = () => setSelectedDate(null);
 
+  const handleArticleClick = (articleId) => {
+    router.push(`/articulo/${articleId}`);
+  };
+
+  const handleGalleryClick = (galleryId) => {
+    router.push(`/galeria/${galleryId}`);
+  };
+
   return (
     <div
       style={{
@@ -154,6 +157,7 @@ export default function BuscarPage() {
         backgroundColor: theme.background,
         padding: 16,
         color: theme.text.primary,
+        minHeight: "100vh",
       }}
     >
       {/* Campo de búsqueda */}
@@ -291,7 +295,8 @@ export default function BuscarPage() {
                     key={g.id}
                     title={g.titulo}
                     imageUrl={g.imagen}
-                    onClick={() => router.push(`/galeria/${g.id}`)}
+                    onClick={() => handleGalleryClick(g.id)}
+                    id={g.id}
                   />
                 ))}
               </div>
@@ -315,6 +320,8 @@ export default function BuscarPage() {
                     imageUrl={a.imagen}
                     paraSocios={a.para_socios}
                     esSocio={session?.role === "partner"}
+                    onClick={() => handleArticleClick(a.id)}
+                    id={a.id}
                   />
                 ))}
               </div>

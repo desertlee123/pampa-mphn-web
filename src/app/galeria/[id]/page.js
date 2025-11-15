@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
-import { API_BASE_URL } from "../../../services/api";
+import { API_BASE_URL, IMAGE_BASE_URL } from "../../../services/api";
 import Box from "../../../components/Box";
 import GaleriaHeader from "../../../components/GaleriaHeader";
-import { px } from "framer-motion";
 
 export default function GaleriaAutorPage() {
   const { id } = useParams();
@@ -19,13 +18,6 @@ export default function GaleriaAutorPage() {
   const [articulos, setArticulos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const normalizeImage = (path) => {
-    if (!path) return null;
-    if (path.startsWith("http")) return path;
-    const clean = path.startsWith("/") ? path.slice(1) : path;
-    return `${API_BASE_URL.replace("/api", "")}/${clean}`;
-  };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -36,11 +28,8 @@ export default function GaleriaAutorPage() {
         const artRes = await fetch(`${API_BASE_URL}/articulos/galeria/${id}`);
         const artData = await artRes.json();
 
-        const esSocio = session?.role === "partner";
         const filtrados = Array.isArray(artData)
-          ? artData
-            .filter((a) => esSocio || a.para_socios === 0)
-            .map((a) => ({ ...a, imagen: normalizeImage(a.imagen) }))
+          ? artData.map((a) => ({ ...a, imagen: `${IMAGE_BASE_URL}/${a.imagen}` }))
           : [];
 
         setArticulos(filtrados);
@@ -53,6 +42,10 @@ export default function GaleriaAutorPage() {
 
     fetchData();
   }, [id, session]);
+
+  const handleArticleClick = (articleId) => {
+    router.push(`/articulo/${articleId}`);
+  };
 
   if (loading) {
     return (
@@ -94,12 +87,7 @@ export default function GaleriaAutorPage() {
         minHeight: "100vh",
         backgroundColor: theme.background,
         color: theme.text.primary,
-        paddingBottom: 80, // espacio para TabBar
-
-        // Estilos para desktop
-        "@media (minWidth: 768px)": {
-          padding: 0,
-        },
+        paddingBottom: 80,
       }}
     >
       <GaleriaHeader galeria={galeria} onBack={() => router.back()} />
@@ -110,11 +98,6 @@ export default function GaleriaAutorPage() {
           gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
           gap: 12,
           padding: 16,
-
-          // Estilos para desktop
-          "@media (minWidth: 768px)": {
-            maxWidth: 100,
-          },
         }}
       >
         {articulos.map((a) => (
@@ -124,6 +107,8 @@ export default function GaleriaAutorPage() {
             imageUrl={a.imagen}
             paraSocios={a.para_socios}
             esSocio={session?.role === "partner"}
+            onClick={() => handleArticleClick(a.id)}
+            id={a.id}
           />
         ))}
       </div>

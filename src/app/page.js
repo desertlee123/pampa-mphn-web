@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { logoutUser } from "../services/authService";
 
 export default function Home() {
   const { session, setSession, loading } = useAuth();
@@ -35,12 +34,6 @@ export default function Home() {
   }
 
   if (!session) return null; // mientras redirige, evita parpadeo
-
-  const handleLogout = async () => {
-    await logoutUser();
-    setSession(null);
-    router.replace("/login");
-  };
 
   return (
     <main
