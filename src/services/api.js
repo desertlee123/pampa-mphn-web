@@ -1,6 +1,6 @@
 // src/services/api.js
-export const API_BASE_URL = "http://192.168.0.103:8000/api";
-export const IMAGE_BASE_URL = "http://192.168.0.103:8000/img";
+export const API_BASE_URL = "http://192.168.0.106:8000/api";
+export const IMAGE_BASE_URL = "http://192.168.0.106:8000/img";
 
 export async function getAllArticulos() {
   try {
@@ -313,5 +313,96 @@ export async function getStaticArticulos() {
   } catch (error) {
     console.error('Error al obtener artículos en SSG:', error);
     throw error;
+  }
+}
+
+export async function getComentarios(idArticulo) {
+  try {
+    const resp = await fetch(`${API_BASE_URL}/comentarios/${idArticulo}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const jsonData = await resp.json();
+    if (!Array.isArray(jsonData)) throw new Error("Formato inválido de comentarios");
+
+    // Obtener IDs únicos de usuarios
+    const usuarioIds = [...new Set(jsonData.map(c => c.usuarios_id))];
+
+    // Cargar usuarios en paralelo
+    const usuarioPromises = usuarioIds.map(id => getUsuarioPorId(id).catch(err => ({ id, nombre: "Usuario" })));
+    const usuarios = await Promise.all(usuarioPromises);
+
+    // Map por id
+    const usuariosMap = usuarios.reduce((acc, u) => { acc[u.id] = u; return acc; }, {});
+
+    // Mapear comentarios inyectando usuario
+    return jsonData.map(item => ({
+      id: item.id,
+      mensaje: item.mensaje,
+      estado: item.estado,
+      fecha_publicacion: item.fecha_publicacion,
+      articulo_id: item.articulos_id ?? item.articulo_id,
+      usuario_id: item.usuarios_id,
+      created_at: item.created_at,
+      usuario: usuariosMap[item.usuarios_id] || { id: item.usuarios_id, nombre: "Usuario" }
+    }));
+
+  } catch (error) {
+    console.error("getComentarios error:", error);
+    throw error;
+  }
+}
+
+export async function crearComentario(mensaje, id_articulo, session) {
+  if (!session?.token) {
+    throw new Error("Token no disponible");
+  }
+  if (!mensaje || !mensaje.trim()) {
+    throw new Error("Comentario vacío");
+  }
+  if (mensaje.length > 250) {
+    throw new Error("Máx 250 caracteres");
+  }
+
+  try {
+    const resp = await fetch(`${API_BASE_URL}/usuarios/comentar`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${session.token}`
+      },
+      body: JSON.stringify({
+        articulos_id: parseInt(id_articulo, 10),
+        mensaje: mensaje.trim()
+      })
+    });
+
+    if (!resp.ok) {
+      // intentar leer body con más info
+      const errBody = await resp.json().catch(() => null);
+      const msg = errBody?.message || (errBody?.errors ? JSON.stringify(errBody.errors) : `HTTP ${resp.status}`);
+      throw new Error(msg);
+    }
+
+    const data = await resp.json();
+    return data;
+  } catch (error) {
+    console.error("crearComentario error:", error);
+    throw error;
+  }
+}
+
+export async function getUsuarioPorId(id) {
+  try {
+    const resp = await fetch(`${API_BASE_URL}/usuarios/${id}`);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const json = await resp.json();
+    // Tu API devuelve { id, name, ... } -> normalizo a { id, nombre, role }
+    return {
+      id: json.id,
+      nombre: json.name || json.nombre || "Usuario",
+      role: json.role || null
+    };
+  } catch (error) {
+    console.error("getUsuarioPorId error:", error);
+    return { id, nombre: "Usuario" };
   }
 }

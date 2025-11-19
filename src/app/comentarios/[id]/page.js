@@ -1,10 +1,12 @@
 // src/app/comentarios/[id]/page.js
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useTheme } from "../../../context/ThemeContext";
 import { useAuth } from "../../../context/AuthContext";
-import { API_BASE_URL } from "../../../services/api";
+import { getComentarios, crearComentario } from "../../../services/api";
+import ComentarioItem from "../../../components/ComentarioItem";
+import ModalCard from "../../../components/ModalCard";
 import { IoClose, IoArrowBack, IoPaperPlane } from "react-icons/io5";
 
 export default function ComentariosPage() {
@@ -17,66 +19,63 @@ export default function ComentariosPage() {
   const [nuevoComentario, setNuevoComentario] = useState("");
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
 
-  // Cargar comentarios del artículo
   useEffect(() => {
-    const cargarComentarios = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/comentarios/${id}`);
-
-        if (response.ok) {
-          const data = await response.json();
-          setComentarios(Array.isArray(data) ? data : []);
-        } else {
-          setComentarios([]);
-        }
-      } catch (error) {
-        console.error("Error cargando comentarios:", error);
-        setComentarios([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     cargarComentarios();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Enviar nuevo comentario
-  const enviarComentario = async () => {
-    if (!nuevoComentario.trim() || !session?.token || session.token === "VISITOR_MODE") {
+  async function cargarComentarios() {
+    try {
+      setLoading(true);
+      const data = await getComentarios(id);
+      setComentarios(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error cargando comentarios:", err);
+      setComentarios([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function enviarComentario() {
+    if (!nuevoComentario.trim()) return;
+    if (!session?.token || session.token === "VISITOR_MODE") {
+      setModalMessage("Debes iniciar sesión para comentar.");
+      setModalOpen(true);
+      return;
+    }
+    if (nuevoComentario.length > 250) {
+      setModalMessage("El comentario no puede exceder 250 caracteres.");
+      setModalOpen(true);
       return;
     }
 
     try {
       setEnviando(true);
-
-      const response = await fetch(`${API_BASE_URL}/usuarios/comentar`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.token}`
-        },
-        body: JSON.stringify({
-          id_articulo: parseInt(id),
-          mensaje: nuevoComentario.trim()
-        })
-      });
-
-      if (response.ok) {
-        const nuevoComent = await response.json();
-        setComentarios(prev => [nuevoComent, ...prev]);
+      const creado = await crearComentario(nuevoComentario, id, session);
+      // según API devuelve el comentario creado (estado "revision")
+      if (creado) {
+        // Opciones: precargar con el usuario local o recargar la lista
+        // mejor recargar (asegura consistencia)
         setNuevoComentario("");
+        await cargarComentarios();
+        setModalMessage("Tu comentario fue enviado a revisión y puede tardar alrededor de 24 horas en publicarse.");
+        setModalOpen(true);
       } else {
-        alert("Error al enviar comentario");
+        setModalMessage("No se pudo enviar el comentario.");
+        setModalOpen(true);
       }
-    } catch (error) {
-      console.error("Error enviando comentario:", error);
-      alert("Error al enviar comentario");
+    } catch (err) {
+      console.error("Error enviando:", err);
+      setModalMessage(typeof err === "string" ? err : (err.message || "Error al enviar comentario"));
+      setModalOpen(true);
     } finally {
       setEnviando(false);
     }
-  };
+  }
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -86,259 +85,91 @@ export default function ComentariosPage() {
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: theme.background,
-        display: "flex",
-        flexDirection: "column",
-        zIndex: 1000,
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "16px",
-          borderBottom: `1px solid ${theme.border}`,
-          backgroundColor: theme.cardBackground,
-        }}
-      >
-        <button
-          onClick={() => router.back()}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 8,
-            borderRadius: 8,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
+    <div style={{
+      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: theme.background, display: "flex", flexDirection: "column", zIndex: 1000
+    }}>
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: 16, borderBottom: `1px solid ${theme.border}`, backgroundColor: theme.cardBackground
+      }}>
+        <button onClick={() => router.back()} style={{ background: "none", border: "none", cursor: "pointer", padding: 8 }}>
           <IoArrowBack size={24} color={theme.text.primary} />
         </button>
 
-        <h2 style={{
-          margin: 0,
-          color: theme.text.primary,
-          fontSize: 18,
-          fontWeight: "bold"
-        }}>
+        <h2 style={{ margin: 0, color: theme.text.primary, fontSize: 18, fontWeight: "bold" }}>
           Comentarios
         </h2>
 
-        <button
-          onClick={() => router.back()}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 8,
-            borderRadius: 8,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
+        <button onClick={() => router.back()} style={{ background: "none", border: "none", cursor: "pointer", padding: 8 }}>
           <IoClose size={24} color={theme.text.primary} />
         </button>
       </div>
 
-      {/* Lista de comentarios */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "16px",
-        }}
-      >
+      <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
         {loading ? (
-          <div style={{ textAlign: "center", color: theme.text.secondary }}>
-            Cargando comentarios...
-          </div>
+          <div style={{ textAlign: "center", color: theme.text.secondary }}>Cargando comentarios...</div>
         ) : comentarios.length === 0 ? (
-          <div style={{ textAlign: "center", color: theme.text.secondary }}>
-            No hay comentarios aún. ¡Sé el primero en comentar!
-          </div>
+          <div style={{ textAlign: "center", color: theme.text.secondary }}>No hay comentarios aún. ¡Sé el primero en comentar!</div>
         ) : (
-          comentarios.map((comentario) => (
-            <div
-              key={comentario.id}
-              style={{
-                padding: "12px",
-                marginBottom: "12px",
-                backgroundColor: theme.cardBackground,
-                borderRadius: "12px",
-                border: `1px solid ${theme.border}`,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  marginBottom: "8px",
-                }}
-              >
-                <span
-                  style={{
-                    fontWeight: "bold",
-                    color: theme.text.primary,
-                    fontSize: "14px",
-                  }}
-                >
-                  {comentario.usuario?.name || "Usuario"}
-                </span>
-                <span
-                  style={{
-                    color: theme.text.secondary,
-                    fontSize: "12px",
-                  }}
-                >
-                  {new Date(comentario.fecha_publicacion).toLocaleDateString()}
-                </span>
-              </div>
-
-              <p
-                style={{
-                  margin: 0,
-                  color: theme.text.primary,
-                  fontSize: "14px",
-                  lineHeight: "1.4",
-                }}
-              >
-                {comentario.mensaje}
-              </p>
-
-              {comentario.estado && comentario.estado !== "publicado" && (
-                <div
-                  style={{
-                    marginTop: "8px",
-                    padding: "4px 8px",
-                    backgroundColor: theme.primary + "20",
-                    color: theme.primary,
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    display: "inline-block",
-                  }}
-                >
-                  {comentario.estado}
-                </div>
-              )}
-            </div>
+          comentarios.map(c => (
+            <ComentarioItem key={c.id} comentario={c} theme={theme} session={session} />
           ))
         )}
       </div>
 
-      {/* Input para nuevo comentario */}
       {session?.token && session.token !== "VISITOR_MODE" ? (
-        <div
-          style={{
-            padding: "16px",
-            borderTop: `1px solid ${theme.border}`,
-            backgroundColor: theme.cardBackground,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              alignItems: "flex-end",
-            }}
-          >
+        <div style={{ padding: 16, borderTop: `1px solid ${theme.border}`, backgroundColor: theme.cardBackground }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
             <textarea
               value={nuevoComentario}
               onChange={(e) => setNuevoComentario(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Escribe tu comentario... (máx. 250 caracteres)"
               maxLength={250}
               style={{
-                flex: 1,
-                minHeight: "40px",
-                maxHeight: "120px",
-                padding: "12px",
-                border: `1px solid ${theme.border}`,
-                borderRadius: "20px",
-                backgroundColor: theme.input?.background || theme.background,
-                color: theme.text.primary,
-                fontSize: "14px",
-                resize: "none",
-                outline: "none",
-                fontFamily: "inherit",
+                flex: 1, minHeight: 40, maxHeight: 120,
+                padding: 12, border: `1px solid ${theme.border}`,
+                borderRadius: 20, backgroundColor: theme.input?.background || theme.background,
+                color: theme.text.primary, fontSize: 14, resize: "none", outline: "none", fontFamily: "inherit"
               }}
             />
-
             <button
               onClick={enviarComentario}
               disabled={!nuevoComentario.trim() || enviando}
               style={{
                 backgroundColor: nuevoComentario.trim() ? theme.primary : theme.border,
-                color: "white",
-                border: "none",
-                borderRadius: "50%",
-                width: "40px",
-                height: "40px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: nuevoComentario.trim() && !enviando ? "pointer" : "not-allowed",
-                opacity: nuevoComentario.trim() && !enviando ? 1 : 0.6,
-              }}
-            >
+                color: "white", border: "none",
+                borderRadius: "50%", width: 40, height: 40,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: nuevoComentario.trim() && !enviando ? "pointer" : "not-allowed", opacity: nuevoComentario.trim() && !enviando ? 1 : 0.6
+              }}>
               {enviando ? (
-                <div
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    border: `2px solid transparent`,
-                    borderTop: `2px solid white`,
-                    borderRadius: "50%",
-                    animation: "spin 1s linear infinite",
-                  }}
-                />
+                <div style={{ width: 16, height: 16, border: "2px solid transparent", borderTop: `2px solid white`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
               ) : (
                 <IoPaperPlane size={18} color="white" />
               )}
             </button>
           </div>
-
-          <div
-            style={{
-              textAlign: "right",
-              marginTop: "4px",
-              fontSize: "12px",
-              color: theme.text.secondary,
-            }}
-          >
+          <div style={{ textAlign: "right", marginTop: 4, fontSize: 12, color: theme.text.secondary }}>
             {nuevoComentario.length}/250
           </div>
         </div>
       ) : (
-        <div
-          style={{
-            padding: "16px",
-            borderTop: `1px solid ${theme.border}`,
-            backgroundColor: theme.cardBackground,
-            textAlign: "center",
-            color: theme.text.secondary,
-          }}
-        >
+        <div style={{ padding: 16, borderTop: `1px solid ${theme.border}`, backgroundColor: theme.cardBackground, textAlign: "center", color: theme.text.secondary }}>
           Inicia sesión para poder comentar
         </div>
       )}
 
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+      <ModalCard
+        open={modalOpen}
+        title="Comentario"
+        message={modalMessage}
+        onConfirm={() => setModalOpen(false)}
+        theme={theme}
+      />
+
+      <style jsx>{`@keyframes spin {0%{transform:rotate(0)}100%{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
