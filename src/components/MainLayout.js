@@ -25,18 +25,30 @@ export default function MainLayout({ children }) {
         color: theme.text.primary,
       }}
     >
-      {/* Encabezado */}
-      <Header />
+      {/* BLOQUE FIJO SUPERIOR (Header + DesktopNavbar) */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          zIndex: 100,
+          backgroundColor: theme.cardBackground,
+          borderBottom: `1px solid ${theme.border}`,
+        }}
+      >
+        <Header />
+        <DesktopNavbar />
+      </div>
 
-      {/* Navegación de escritorio */}
-      <DesktopNavbar />
 
       {/* Contenido dinámico */}
       <div
+        className="main-layout-mobile"
         style={{
           flex: 1,
           overflowY: "auto",
-          paddingBottom: 60,
+          paddingTop: 120,
           width: "100%",
           margin: "0 auto",
           ...(pathname === "/shorts" && {

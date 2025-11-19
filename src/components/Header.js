@@ -17,7 +17,7 @@ export default function Header() {
         justifyContent: "space-between",
         padding: "0 24px",
         borderBottom: `1px solid ${theme.border}`,
-        position: "sticky",
+        // position: "sticky",
         top: 0,
         zIndex: 50,
         transition: "all 0.3s ease",

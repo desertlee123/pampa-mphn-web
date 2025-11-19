@@ -40,7 +40,7 @@ export default function DesktopNavbar() {
         justifyContent: "space-around",
         gap: 30,
         padding: "12px 0",
-        position: "sticky",
+        // position: "sticky",
         top: 0,
         zIndex: 50,
       }}

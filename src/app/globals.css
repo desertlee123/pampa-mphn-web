@@ -167,3 +167,9 @@ main {
     margin-bottom: 28px !important;
   }
 }
+
+@media (max-width: 767px) {
+  .main-layout-mobile {
+    padding-top: 70px !important;
+  }
+}
