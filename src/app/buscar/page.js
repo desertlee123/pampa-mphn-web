@@ -283,6 +283,7 @@ export default function BuscarPage() {
           {galerias.length > 0 && (
             <Seccion title="Galerías encontradas">
               <div
+                className="articulos-grid"
                 style={{
                   display: "flex",
                   gap: 16,
@@ -306,6 +307,7 @@ export default function BuscarPage() {
           {articulos.length > 0 && (
             <Seccion title="Artículos encontrados">
               <div
+                className="articulos-grid"
                 style={{
                   display: "flex",
                   gap: 16,

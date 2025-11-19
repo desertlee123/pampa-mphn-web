@@ -144,3 +144,26 @@ body {
 main {
   overflow: hidden !important;
 }
+
+@media (max-width: 767px) {
+  .articulos-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+}
+
+
+@media (max-width: 767px) {
+  .novedad-box {
+    min-width: 180px !important;
+    flex: 0 0 auto !important;
+  }
+}
+
+
+@media (max-width: 767px) {
+  .seccion-mobile {
+    margin-bottom: 28px !important;
+  }
+}
