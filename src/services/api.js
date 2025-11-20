@@ -1,6 +1,6 @@
 // src/services/api.js
-export const API_BASE_URL = "http://192.168.0.106:8000/api";
-export const IMAGE_BASE_URL = "http://192.168.0.106:8000/img";
+export const API_BASE_URL = "http://192.168.0.114:8000/api";
+export const IMAGE_BASE_URL = "http://192.168.0.114:8000/img";
 
 export async function getAllArticulos() {
   try {

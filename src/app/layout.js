@@ -2,6 +2,7 @@
 import "./globals.css";
 import Providers from "../context/Providers";
 import MainLayout from "../components/MainLayout";
+import NotificationProvider from "../context/NotificationProvider";
 
 export const metadata = {
   title: "PAMPA MPHN",
@@ -19,7 +20,9 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <Providers>
-          <MainLayout>{children}</MainLayout>
+          <NotificationProvider>
+            <MainLayout>{children}</MainLayout>
+          </NotificationProvider>
         </Providers>
       </body>
     </html>
